@@ -385,7 +385,7 @@ function animate() {
       );
     }
 
-    if(elapsed >= DURATION / 10)
+    if(elapsed >= DURATION / 10 + 700)
     {
       isAnimating = false;
     }
