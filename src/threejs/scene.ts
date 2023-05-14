@@ -8,7 +8,6 @@ import { Galaxy } from "./galaxy";
 import { ProfileWindow } from "./ProfileWindow";
 import { globalResources } from "./GlobalResources";
 import { ProfileItem } from "./ProfileItem";
-import { Octree } from '@brakebein/threeoctree';
 
 export var renderTimeSeconds = 0;
 export var rtPlane:any;

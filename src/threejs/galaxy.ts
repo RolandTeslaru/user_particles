@@ -1,6 +1,20 @@
 
 import * as THREE from "three"
+import { ProfileIconUI, ProfileItem } from "./ProfileItem";
 
+let index = 0;
+
+interface profileData {
+  profileId: number;
+  profileItem : ProfileItem | null; 
+  hasProfile: boolean;
+}
+
+let profilesArray: profileData[] = [];
+for(let i = 0; i < 100000; i++){
+  profilesArray.push({profileId: i, profileItem: null, hasProfile: false});
+}
+console.log("FADFASFAD", profilesArray)
 
 export class Chunk extends THREE.Mesh{
   index_I: number = 0;
@@ -8,27 +22,115 @@ export class Chunk extends THREE.Mesh{
   points: Array<THREE.Vector3> = [];
   particleSystem!: THREE.Points;
   boundingBox!: THREE.Box3;
-  particleMateria!: THREE.PointsMaterial;
+  chunkParticleMaterial!: THREE.PointsMaterial;
   sizes: number[] = [];
   shift: number[] = [];
+  freezeChunk: boolean = false;
+  time = { value: 0 };
+
   
   constructor(geometry: THREE.BufferGeometry, material: THREE.Material){
     super(geometry, material);
+    this.chunkParticleMaterial = new THREE.PointsMaterial({
+      size: 0.125,
+      transparent: true,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+      //@ts-expect-error
+      onBeforeCompile: (shader: {
+        uniforms: { time: { value: number } };
+        vertexShader: string;
+        fragmentShader: string;
+      }) => {
+        shader.uniforms.time = this.time;
+        shader.vertexShader = `
+        uniform float time;
+        attribute float sizes;
+        attribute vec4 shift;
+        varying vec3 vColor;
+        ${shader.vertexShader}
+        `
+          .replace(`gl_PointSize = 30.0;`, `gl_PointSize = size * sizes;`)
+          .replace(
+            `#include <color_vertex>`,
+            `#include <color_vertex>
+            float d = length(abs(position) / vec3(40., 10., 40));
+            d = clamp(d, 0., 1.);
+            vColor = mix(vec3(227., 155., 0.), vec3(100., 50., 255.), d) / 255.;
+            `
+          )
+          .replace(
+            `#include <begin_vertex>`,
+            `#include <begin_vertex>
+              float t = time;
+              float moveT = mod(shift.x + shift.z * t, PI2);
+              float moveS = mod(shift.y + shift.z * t, PI2);
+              transformed += vec3(cos(moveS) * sin(moveT), cos(moveT), sin(moveS) * sin(moveT)) * shift.w;
+              `
+          );
+        shader.fragmentShader = `
+        varying vec3 vColor;
+        ${shader.fragmentShader}
+        `
+          .replace(
+            `#include <clipping_planes_fragment>`,
+            `#include <clipping_planes_fragment>
+          float d = length(gl_PointCoord.xy - 0.5);
+          //if (d > 0.5) discard;
+          `
+          )
+          .replace(
+            `vec4 diffuseColor = vec4( diffuse, opacity );`,
+            `vec4 diffuseColor = vec4( vColor, smoothstep(0.5, 0.1, d)/* * 0.5 + 0.5*/ );`
+          );
+      },
+    });
+  }
+
+  update(clock: THREE.Clock){
+    if(this.freezeChunk === false)
+      this.time.value = clock.getElapsedTime() * Math.PI;
+   
   }
 
   isCameraNear(camera: THREE.Camera, distanceThreshold: number): boolean{
     const cameraPos = camera.position;
     camera.getWorldPosition(cameraPos);
 
+    if(this.boundingBox.distanceToPoint(cameraPos) < distanceThreshold)
+    {
+      this.freezeChunk = true;
+    }
+    else
+      this.freezeChunk = false;
+
     return this.boundingBox.distanceToPoint(cameraPos) < distanceThreshold;
   }
 
 
 
-
-  createProfile(){
-    console.log("Creating Profile");    
+  activateProfile(point: THREE.Vector3, index: number) {
+    console.log("Creating Profile");
+    
+    // Check if a ProfileItem already exists for the given index
+    if (profilesArray[index] && profilesArray[index].hasProfile === true) {
+      console.log("Profile has already been created");
+      this.add(profilesArray[index].profileItem);
+    } else {
+      console.log("Profile doesn't exist on the index");
+      console.log("Creating ProfileItem");
+      profilesArray[index] = {
+        profileId: index,
+        profileItem: new ProfileItem("/profileSm.jpg", index),
+        hasProfile: true,
+      };
+      this.add(profilesArray[index].profileItem);
+    }
   }
+
+
+
 
   arePointsNearCamera(camera: THREE.Camera, distanceThreshold: number) {
     const cameraPosition = new THREE.Vector3();
@@ -37,10 +139,17 @@ export class Chunk extends THREE.Mesh{
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
       if (cameraPosition.distanceTo(point) < distanceThreshold) {
-        this.createProfile();
+        if (!profilesArray[i]) {
+          this.activateProfile(point, i);
+        }
+      } else {
+        if (profilesArray[i]) {
+          // Remove profileItem from the scene or the container object
+          // Example: scene.remove(profilesArray[i]);
+          profilesArray[i] = undefined;
+        }
       }
     }
-
   }
 }
 
@@ -162,20 +271,10 @@ export class Galaxy extends THREE.Group {
         const chunkCenter = new THREE.Vector3();
         chunk.getWorldPosition(chunkCenter);
   
-        if (camera.position.distanceTo(chunkCenter) < chunkDistanceThreshold) {
+        if (this.ChunksArray[i][j].isCameraNear(camera, chunkDistanceThreshold)) {
           // Check for near points inside the chunk
 
-          console.log("CHUNK NEAR CAMERA", i , " " , j )
-
-          this.ChunksArray[i][j].material.color.set(0x00ff00);
-          this.ChunksArray[i][j].material.needsUpdate = true;
-          // Stop this.ChunksArray[i][j].ParticleSystem.material from updating
-
-
-        } else {
-          this.ChunksArray[i][j].material.color.set(0xff0000);
-          this.ChunksArray[i][j].material.needsUpdate = true;
-          
+          this.ChunksArray[i][j].arePointsNearCamera(camera, pointDistanceThreshold);
         }
       }
     }
@@ -230,7 +329,10 @@ export class Galaxy extends THREE.Group {
         geometry.setAttribute('sizes', new THREE.Float32BufferAttribute(this.ChunksArray[i][j].sizes, 1));
         geometry.setAttribute('shift', new THREE.Float32BufferAttribute(this.ChunksArray[i][j].shift, 4));
 
-        this.ChunksArray[i][j].particleSystem = new THREE.Points(geometry, this.galaxyMaterial);
+        this.ChunksArray[i][j].particleSystem = new THREE.Points(
+          geometry,
+          this.ChunksArray[i][j].chunkParticleMaterial
+        );
         this.add(this.ChunksArray[i][j].particleSystem);
       }
     }
@@ -308,7 +410,12 @@ export class Galaxy extends THREE.Group {
     let t = clock.getElapsedTime();
     this.time.value = t * Math.PI;
 
-    this.findPoints(cmaera, 8, 8);
+    for(let i=0; i< Math.sqrt(this.CHUNKS_NUM); i++) {
+      for(let j=0; j< Math.sqrt(this.CHUNKS_NUM); j++) {
+        this.ChunksArray[i][j].update(clock)
+      }
+    }
+    this.findPoints(cmaera, 5,5);
   }
 
 }

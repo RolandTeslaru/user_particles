@@ -135,7 +135,9 @@ export class ProfileItem extends THREE.Group{
 
     infoBtn: ButtonUI;
 
-    constructor(imagePath: string){
+    profileId: number;
+
+    constructor(imagePath: string, profileId: number){
         super();
 
         this.imagePath = imagePath;
@@ -154,6 +156,7 @@ export class ProfileItem extends THREE.Group{
         this.window = new THREE.Mesh(pBackground, mBackground);
         this.add(this.window)
 
+        this.profileId = profileId;
         this.photo = new ProfileIconUI(this.imagePath);
         this.photo.position.set(-0.2, 0.01 ,0.01)
         this.add(this.photo);
