@@ -35,6 +35,14 @@ interface IGlobalResources {
 
 export var globalResources:IGlobalResources = {
     profiles: [],
+    Gfont: undefined,
+    cityProfileMtl: undefined,
+    hexMap: undefined,
+    hexProfileMtl: undefined,
+    bordmap: new THREE.Texture,
+    btnLightMtl: undefined,
+    btnFaceMtl2: undefined,
+    btnFaceMtl: undefined
 }
 
 const loader = new THREE.TextureLoader();

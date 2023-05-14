@@ -2,21 +2,26 @@
 import * as THREE from "three"
 import { ProfileIconUI, ProfileItem } from "./ProfileItem";
 
-let index = 0;
-
-interface profileData {
+interface IProfileData {
   profileId: number;
   profileItem : ProfileItem | null; 
-  hasProfile: boolean;
 }
 
-let profilesArray: profileData[] = [];
+let activeProfiles: IProfileData[] = new Array<IProfileData>(100000);
+
+let profilesArray: IProfileData[] = new Array<IProfileData>(100000);
+profilesArray.length = 100000;
 for(let i = 0; i < 100000; i++){
-  profilesArray.push({profileId: i, profileItem: null, hasProfile: false});
+  profilesArray[i] = {
+    profileId: i,
+    profileItem: null,
+
+  }
 }
-console.log("FADFASFAD", profilesArray)
+
 
 export class Chunk extends THREE.Mesh{
+
   index_I: number = 0;
   index_J: number = 0;
   points: Array<THREE.Vector3> = [];
@@ -27,7 +32,6 @@ export class Chunk extends THREE.Mesh{
   shift: number[] = [];
   freezeChunk: boolean = false;
   time = { value: 0 };
-
   
   constructor(geometry: THREE.BufferGeometry, material: THREE.Material){
     super(geometry, material);
@@ -90,8 +94,9 @@ export class Chunk extends THREE.Mesh{
 
   update(clock: THREE.Clock){
     if(this.freezeChunk === false)
+    {
       this.time.value = clock.getElapsedTime() * Math.PI;
-   
+    }
   }
 
   isCameraNear(camera: THREE.Camera, distanceThreshold: number): boolean{
@@ -99,59 +104,30 @@ export class Chunk extends THREE.Mesh{
     camera.getWorldPosition(cameraPos);
 
     if(this.boundingBox.distanceToPoint(cameraPos) < distanceThreshold)
-    {
       this.freezeChunk = true;
-    }
     else
       this.freezeChunk = false;
-
+    
     return this.boundingBox.distanceToPoint(cameraPos) < distanceThreshold;
   }
 
-
-
-  activateProfile(point: THREE.Vector3, index: number) {
-    console.log("Creating Profile");
-    
-    // Check if a ProfileItem already exists for the given index
-    if (profilesArray[index] && profilesArray[index].hasProfile === true) {
-      console.log("Profile has already been created");
-      this.add(profilesArray[index].profileItem);
-    } else {
-      console.log("Profile doesn't exist on the index");
-      console.log("Creating ProfileItem");
-      profilesArray[index] = {
-        profileId: index,
-        profileItem: new ProfileItem("/profileSm.jpg", index),
-        hasProfile: true,
-      };
-      this.add(profilesArray[index].profileItem);
-    }
-  }
-
-
-
-
-  arePointsNearCamera(camera: THREE.Camera, distanceThreshold: number) {
-    const cameraPosition = new THREE.Vector3();
-    camera.getWorldPosition(cameraPosition);
-
-    for (let i = 0; i < this.points.length; i++) {
-      const point = this.points[i];
-      if (cameraPosition.distanceTo(point) < distanceThreshold) {
-        if (!profilesArray[i]) {
-          this.activateProfile(point, i);
-        }
-      } else {
-        if (profilesArray[i]) {
-          // Remove profileItem from the scene or the container object
-          // Example: scene.remove(profilesArray[i]);
-          profilesArray[i] = undefined;
-        }
+  disposePorfileItem(index: number){
+    if (profilesArray[index] && profilesArray[index]) {
+      const profileItem = profilesArray[index].profileItem;
+      if (profileItem) {
+        // Dispose of the profileItem and remove it from the scene
+        profileItem.dispose();
+        this.remove(profileItem);
       }
+      // Reset the properties in profilesArray for the given index
+      profilesArray[index].profileItem = null;
     }
   }
+
 }
+
+
+
 
 export class Galaxy extends THREE.Group {
   TOTAL_SIZE: number;
@@ -261,25 +237,53 @@ export class Galaxy extends THREE.Group {
     this.generateGalaxy();
   }
 
-  findPoints(camera: THREE.Camera, chunkDistanceThreshold: number, pointDistanceThreshold: number): number[] {
-    const nearPointsIndices: number[] = [];
+  // if the camera is within the threshold of the chunk 
+  //and within the threshold of the point then add it to the array
+  activateProfile(point: THREE.Vector3, index: number) {
+    if(profilesArray[index].profileItem === null){
+
+      profilesArray[index].profileItem = new ProfileItem("/profileSm.jpg", index);
+      console.log(point)
+      profilesArray[index].profileItem!.position.set(
+        point.x, 
+        point.y, 
+        point.z 
+        );
+      activeProfiles[index] = profilesArray[index];
+      this.add(profilesArray[index].profileItem!);
+    }
+  }
+
+  // Search if the camera is within the threshold of the chunk
+
+  findPoints(camera: THREE.Camera, chunkDistanceThreshold: number, pointDistanceThreshold: number) {
   
-    // Check if chunks are near the camera
     for (let i = 0; i < Math.sqrt(this.CHUNKS_NUM); i++) {
       for (let j = 0; j < Math.sqrt(this.CHUNKS_NUM); j++) {
+
         const chunk = this.ChunksArray[i][j];
         const chunkCenter = new THREE.Vector3();
         chunk.getWorldPosition(chunkCenter);
-  
+
         if (this.ChunksArray[i][j].isCameraNear(camera, chunkDistanceThreshold)) {
           // Check for near points inside the chunk
+          for(let k = 0; k < this.ChunksArray[i][j].points.length; k++){
 
-          this.ChunksArray[i][j].arePointsNearCamera(camera, pointDistanceThreshold);
+            const point = this.ChunksArray[i][j].points[k];
+            if(camera.position.distanceTo(point) < pointDistanceThreshold){
+              if(!profilesArray[k].profileItem){
+                this.activateProfile(point, k);
+              }
+            } else if(profilesArray[k].profileItem){
+              this.remove(profilesArray[k].profileItem!);
+              profilesArray[k].profileItem?.dispose();
+            }
+          }
         }
+
       }
     }
   
-    return nearPointsIndices;
   }
 
   getOuterRimAraray() {
@@ -311,12 +315,13 @@ export class Galaxy extends THREE.Group {
         const posX = ((2 * this.finalRadius) / Math.sqrt(this.CHUNKS_NUM)) * (j - 4.5) ;
         const posZ = ((2 * this.finalRadius) / Math.sqrt(this.CHUNKS_NUM)) * (i - 4.5);
         chunk.position.set(posX, 0, posZ);
-  
+        chunk.index_I = i;
+        chunk.index_J = j;
+
         this.ChunksArray[i][j] = chunk;
 
         const boundingBox = new THREE.Box3().setFromObject(chunk);
         this.ChunksArray[i][j].boundingBox = boundingBox;
-        this.add(this.ChunksArray[i][j]);
       }
     }
   }
@@ -337,6 +342,7 @@ export class Galaxy extends THREE.Group {
       }
     }
   }
+
   assigPointToChunk(point: THREE.Vector3) {
     for (let i = 0; i < Math.sqrt(this.CHUNKS_NUM); i++) {
       for (let j = 0; j <  Math.sqrt(this.CHUNKS_NUM); j++) {
@@ -387,7 +393,8 @@ export class Galaxy extends THREE.Group {
     this.galaxyGeometry.setAttribute("size",new THREE.Float32BufferAttribute(this.sizes, 1));
     this.galaxyGeometry.setAttribute("shift",new THREE.Float32BufferAttribute(this.shift, 4));
 
-    this.galaxyPositionsAttribute = new THREE.Float32BufferAttribute(this.galaxyGeometry.attributes.position.array,3);
+    this.galaxyPositionsAttribute = 
+      new THREE.Float32BufferAttribute(this.galaxyGeometry.attributes.position.array,3);
 
     this.pointsSystem = new THREE.Points(this.galaxyGeometry, this.galaxyMaterial);
     this.add(this.pointsSystem);
@@ -403,7 +410,7 @@ export class Galaxy extends THREE.Group {
     );
   }
 
-  updateAnimation(clock: THREE.Clock, cmaera : THREE.Camera) {
+  updateAnimation(clock: THREE.Clock, camera : THREE.Camera) {
     const currentTime = Date.now();
     const elapsed = currentTime - this.startTime;
 
@@ -415,7 +422,11 @@ export class Galaxy extends THREE.Group {
         this.ChunksArray[i][j].update(clock)
       }
     }
-    this.findPoints(cmaera, 5,5);
+    this.findPoints(camera, 5,5);
+
+    activeProfiles.forEach((profile) => {
+      profile.profileItem!.update(camera);
+    })
   }
 
 }

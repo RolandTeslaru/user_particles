@@ -169,4 +169,13 @@ export class ProfileItem extends THREE.Group{
     update(camera: THREE.Camera){
         this.lookAt(camera.position);       // Make the window always face the Camera
     }
+
+    dispose(){
+        // this.window.geometry.dispose();
+        // this.window.material.dispose();
+        // this.photo.geometry.dispose();
+        // this.photo.material.dispose();
+        // this.infoBtn.geometry.dispose();
+        // this.infoBtn.material.dispose();
+    }
 }
