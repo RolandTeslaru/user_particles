@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { globalResources } from "./GlobalResources";
 import { novaBaseVS, glitchProfilePFS, BtnFaceFS, BtnTextFS, glitchButtonFS, BtnLightFS } from './shaders';
+import * as TWEEN from '@tweenjs/tween.js';
 
 const loader = new THREE.TextureLoader();
 
@@ -67,6 +68,11 @@ export class ButtonUI extends THREE.Group {
         this.add(this.text);
         // this.add(this.mesh);
     }
+
+    dispose(){
+        this.geometry.dispose();
+        this.material.dispose();
+    }
 }
 
 
@@ -85,7 +91,12 @@ export class HeaderUI extends THREE.Mesh{
         this.headerId = headerId;
         this.headerName = "header#" + this.headerId;
         this.position.set(0.2, 0.115, 0.001);
-        
+    }
+
+    dispose(){
+        this.geometry.dispose();
+        //@ts-expect-error
+        this.material.dispose();
     }
 }
 
@@ -105,7 +116,6 @@ export class ProfileIconUI extends THREE.Mesh {
         let material = new THREE.MeshBasicMaterial({
             color: 0xffffff,
             transparent: false,
-            blending: THREE.NormalBlending,
             depthTest: true,
             depthWrite: true,
             alphaMap: globalResources.photoAlpha,
@@ -117,9 +127,12 @@ export class ProfileIconUI extends THREE.Mesh {
         super(geometry, material);
         this.imagePath = imagePath;
         this.scale.setScalar(0.8);
+    }
 
-
-        
+    dispose(){
+        this.geometry.dispose();
+        //@ts-expect-error
+        this.material.dispose();
     }
 }
 
@@ -154,11 +167,15 @@ export class ProfileItem extends THREE.Group{
           side: THREE.FrontSide
         });
         this.window = new THREE.Mesh(pBackground, mBackground);
+        this.window.scale.setX(0.25);
+        this.window.scale.setY(0.3);
+        this.window.scale.setY(0.3);
         this.add(this.window)
 
         this.profileId = profileId;
         this.photo = new ProfileIconUI(this.imagePath);
-        this.photo.position.set(-0.2, 0.01 ,0.01)
+        this.photo.position.set(-0.05, 0.005 ,0.01)
+        this.photo.scale.setScalar(0.2);
         this.add(this.photo);
 
         this.infoBtn = new ButtonUI();
@@ -166,16 +183,45 @@ export class ProfileItem extends THREE.Group{
         
     }
     
-    update(camera: THREE.Camera){
+    update(camera: THREE.Camera, clock: THREE.Clock){
         this.lookAt(camera.position);       // Make the window always face the Camera
+   
     }
 
+    animateAppear(){
+        const startScale = new THREE.Vector3(0, 0, 0); // Initial scale
+        const endScale = new THREE.Vector3(1, 1, 1); // Target scale
+
+        // Create a tween animation
+        const tween = new TWEEN.Tween(startScale)
+        .to(endScale, 1000) // Set the duration of the animation (in milliseconds)
+        .easing(TWEEN.Easing.Elastic.Out) // Use an easing function for a smoother effect
+        .onUpdate(() => {
+            // Update the scale of the ProfileItem
+            this.scale.copy(startScale);
+            console.log("this is happening")
+        })
+        .start(); // Start the animation
+
+        // Use the onBeforeRender event to update the Tween.js animation
+        const updateAnimation = () => {
+        if (tween) {
+            TWEEN.update();
+        }
+        };
+        this.addEventListener('beforeRender', updateAnimation);
+    }
+
+    // Dispose after the window is no longer within the threshold
     dispose(){
-        // this.window.geometry.dispose();
-        // this.window.material.dispose();
-        // this.photo.geometry.dispose();
-        // this.photo.material.dispose();
-        // this.infoBtn.geometry.dispose();
-        // this.infoBtn.material.dispose();
+        this.window.geometry.dispose();
+        //@ts-expect-error
+        this.window.material.dispose();
+        this.photo.dispose();
+        this.infoBtn.dispose();
+
+        this.remove(this.window);
+        this.remove(this.photo);
+        this.remove(this.infoBtn);
     }
 }

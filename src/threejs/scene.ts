@@ -53,20 +53,11 @@ const OUTER_RIM_SIZE = 100000;
 const galaxy = new Galaxy(
   SPHERE_SIZE,
   OUTER_RIM_SIZE,
+  3,
+  3
 );
 
 scene.add(galaxy)
-
-const axisHelper = new THREE.AxesHelper(100);
-scene.add(axisHelper);
-
-const gridHelper = new THREE.GridHelper(100, 100);
-scene.add(gridHelper);
-
-
-
-
-console.log(galaxy.pointsSystem.geometry.getAttribute("position"))
 
 
 
@@ -76,7 +67,7 @@ function animate() {
   renderer.render(scene, camera);
 
 
-  galaxy.updateAnimation(clock, camera);
+  galaxy.updateAnimation(clock, camera, renderer);
 
 }
 
