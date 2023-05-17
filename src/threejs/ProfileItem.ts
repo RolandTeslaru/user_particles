@@ -210,6 +210,16 @@ export class ProfileItem extends THREE.Group{
         }
         };
         this.addEventListener('beforeRender', updateAnimation);
+        tween.onComplete(() => {
+            this.removeEventListener('beforeRender', updateAnimation);  // Remove the event listener            
+        })
+    }
+
+    animateDissaapear(){
+        const startScale = new THREE.Vector3(1, 1, 1); // Initial scale
+        const endScale = new THREE.Vector3(0, 0, 0); // Target scale
+
+        const tween = new 
     }
 
     // Dispose after the window is no longer within the threshold

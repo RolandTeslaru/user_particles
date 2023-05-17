@@ -18,7 +18,7 @@ let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
-  0.5,
+  0.1,
   100000
   );
   let renderer = new THREE.WebGLRenderer();
@@ -57,7 +57,7 @@ const galaxy = new Galaxy(
   OUTER_RIM_SIZE,
   3,
   3
-  );
+);
   
 // const raycaster = new RaycasterUI();
 // window.addEventListener("mousemove", raycaster.onMouseMove);

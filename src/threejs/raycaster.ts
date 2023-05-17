@@ -20,11 +20,8 @@ export class RaycasterUI extends THREE.Raycaster {
     const intersects = this.intersectObjects(this.objects!);
     console.log("intersects ", intersects)
     if (intersects.length > 0) {
-      const intersectObj = intersects[0].object;
-      console.log("FINAL intersect", intersectObj)
-      const index = this.objects.findIndex((obj: any) => obj === intersectObj);
+      return intersects[0].object;
 
-      return index;
     }
 
     return null;
