@@ -7,6 +7,9 @@ import * as TWEEN from '@tweenjs/tween.js'
 import { Galaxy } from "./galaxy";
 import { globalResources } from "./GlobalResources";
 import { ProfileItem } from "./ProfileItem";
+import { RaycasterUI } from "./raycaster";
+
+import { clickableObjects } from "./galaxy";
 
 export var renderTimeSeconds = 0;
 export var rtPlane:any;
@@ -35,7 +38,6 @@ let camera = new THREE.PerspectiveCamera(
 window.addEventListener("resize", resizeRenderer);
 
 
-
 scene.background = new THREE.Color(0x160016);
 
 controls.update();
@@ -55,7 +57,12 @@ const galaxy = new Galaxy(
   OUTER_RIM_SIZE,
   3,
   3
-);
+  );
+  
+// const raycaster = new RaycasterUI();
+// window.addEventListener("mousemove", raycaster.onMouseMove);
+// window.addEventListener("click", (event) =>  raycaster.onClick(event, new Array(clickableObjects.values())));
+
 
 scene.add(galaxy)
 

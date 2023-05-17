@@ -1,13 +1,16 @@
 
 import * as THREE from "three"
 import { ProfileIconUI, ProfileItem } from "./ProfileItem";
+import { RaycasterUI } from "./raycaster";
 
 interface IProfileData {
   profileId: number;
   profileItem : ProfileItem | null; 
 }
 
-let activeProfiles: Map<number, ProfileItem> = new Map();
+
+export let activeProfiles: Map<number, ProfileItem> = new Map();
+export let clickableObjects: Map<number, THREE.Object3D> = new Map();
 
 export class Chunk extends THREE.Mesh{
 
@@ -21,9 +24,12 @@ export class Chunk extends THREE.Mesh{
   shift: number[] = [];
   freezeChunk: boolean = false;
   time = { value: 0 };
+
+  pointer: THREE.Vector2
   
   constructor(geometry: THREE.BufferGeometry, material: THREE.Material){
     super(geometry, material);
+    this.pointer = new THREE.Vector2(0, 0);
     this.chunkParticleMaterial = new THREE.PointsMaterial({
       size: 0.125,
       transparent: true,
@@ -81,6 +87,7 @@ export class Chunk extends THREE.Mesh{
     });
   }
 
+
   update(clock: THREE.Clock){
     if(this.freezeChunk === false)
     {
@@ -99,8 +106,6 @@ export class Chunk extends THREE.Mesh{
     
     return this.boundingBox.distanceToPoint(cameraPos) < distanceThreshold;
   }
-
-
 }
 
 
@@ -143,6 +148,11 @@ export class Galaxy extends THREE.Group {
 
   time: { value: number } = { value: 0 };
 
+  raycaster: RaycasterUI;
+  clock!: THREE.Clock;
+  camera!: THREE.Camera;
+  renderer!: THREE.WebGLRenderer;
+
   constructor(
     SPHERE_SIZE: number,
     OUTER_RIM_SIZE: number,
@@ -158,8 +168,12 @@ export class Galaxy extends THREE.Group {
     this.CHUNK_LEN = 6;
     this.CHUNK_DISTANCE_THRESHOLD = CHUNK_DISTANCE_THRESHOLD;
     this.POINT_DISTANCE_THRESHOLD = POINT_DISTANCE_THRESHOLD;
+    this.raycaster = new RaycasterUI();
 
+    window.addEventListener("mousemove", (event: any) => this.raycaster.onMouseMove(event));
+    window.addEventListener("click", (event: any) => this.onClick(event));
 
+    
     this.galaxyMaterial = new THREE.PointsMaterial({
       size: 0.125,
       transparent: true,
@@ -205,8 +219,8 @@ export class Galaxy extends THREE.Group {
           .replace(
             `#include <clipping_planes_fragment>`,
             `#include <clipping_planes_fragment>
-          float d = length(gl_PointCoord.xy - 0.5);
-          //if (d > 0.5) discard;
+            float d = length(gl_PointCoord.xy - 0.5);
+            //if (d > 0.5) discard;
           `
           )
           .replace(
@@ -219,6 +233,19 @@ export class Galaxy extends THREE.Group {
     this.generateGalaxy();
   }
 
+
+  onClick(event: any){
+    const target = this.raycaster.findIntersectingObject(event, Array.from(clickableObjects.values()), this.camera);
+    console.log("Array from ", Array.from(clickableObjects.values()));
+    if(target){
+      console.log("Target found", target);
+      this.focusOnTarget(clickableObjects.get(target)!);
+    }
+    else
+      console.log("Target not found");
+  }
+
+  
   // if the camera is within the threshold of the chunk 
   //and within the threshold of the point then add it to the array
   activateProfile(point: THREE.Vector3, index: number) {
@@ -228,12 +255,25 @@ export class Galaxy extends THREE.Group {
       activeProfiles.set(index, profileItem);
       this.add(profileItem);
       profileItem.animateAppear();
+
+      clickableObjects.set(index, profileItem);
     }
   }
 
-  // Search if the camera is within the threshold of the chunk
+  focusOnTarget(target: THREE.Object3D){
+    console.log("Focus on target", target)
+    const focus = new THREE.Vector3(target.position.x, target.position.y, target.position.z);
+    const focusDistance = this.camera.position.distanceTo(focus);
+    const focusPoint = new THREE.Vector3();
+    focusPoint.lerpVectors(this.camera.position, focus, focusDistance);
+    this.camera.lookAt(focusPoint);
 
-  findPoints(camera: THREE.Camera, chunkDistanceThreshold: number, pointDistanceThreshold: number) {
+    this.camera.position.lerpVectors(this.camera.position, focusPoint, 0.1);
+    
+  }
+
+  // Search if the camera is within the threshold of the chunk
+  findPoints(chunkDistanceThreshold: number, pointDistanceThreshold: number) {
   
     for (let i = 0; i < Math.sqrt(this.CHUNKS_NUM); i++) {
       for (let j = 0; j < Math.sqrt(this.CHUNKS_NUM); j++) {
@@ -241,11 +281,11 @@ export class Galaxy extends THREE.Group {
         const chunkCenter = new THREE.Vector3();
         chunk.getWorldPosition(chunkCenter);
 
-        if (this.ChunksArray[i][j].isCameraNear(camera, chunkDistanceThreshold)) {
+        if (this.ChunksArray[i][j].isCameraNear(this.camera, chunkDistanceThreshold)) {
           // Check for near points inside the chunk
           for (let k = 0; k < this.ChunksArray[i][j].points.length; k++) {
             const point = this.ChunksArray[i][j].points[k];
-            if (camera.position.distanceTo(point) < pointDistanceThreshold) {
+            if (this.camera.position.distanceTo(point) < pointDistanceThreshold) {
               if (!activeProfiles.has(k)) {
                 this.activateProfile(point, k);
               }
@@ -254,7 +294,6 @@ export class Galaxy extends THREE.Group {
         }
       }
     }
-  
   }
 
   getOuterRimAraray() {
@@ -264,6 +303,11 @@ export class Galaxy extends THREE.Group {
 
     return outerRimPoints;
   }
+
+
+  // findTargetWindow(){
+  //   for(this.raycaster. )
+  // }
 
   generateChunks() {
     const geom = new THREE.BoxGeometry(
@@ -330,8 +374,7 @@ export class Galaxy extends THREE.Group {
   }  
 
   generateGalaxy() {
-
-    // Generate the inner sphere points
+    // Generate inner sphere points
     this.galaxyPoints = new Array(this.SPHERE_SIZE).fill(null).map((p) => {
       this.sizes.push(Math.random() * 1.5 + 0.5);
       this.pushShift(this.shift);
@@ -340,11 +383,10 @@ export class Galaxy extends THREE.Group {
       .multiplyScalar(Math.random() * 0.5 + 9.5);
     });
     
-
     // Generate Chunks
     this.generateChunks();
 
-    // Generate the outer rim points
+    // Generate outer rim points
     for (let i = 0; i < this.OUTER_RIM_SIZE; i++) {
       let r = 10, R = 40;
       let rand = Math.pow(Math.random(), 1.5);
@@ -356,7 +398,6 @@ export class Galaxy extends THREE.Group {
       );
       // Assign outer rim points to chunks
       this.assigPointToChunk(point);
-      
     }
     this.generateChunkParticleSys();
 
@@ -382,13 +423,12 @@ export class Galaxy extends THREE.Group {
   }
 
   updateAnimation(clock: THREE.Clock, camera : THREE.Camera, renderer: THREE.WebGLRenderer) {
-    const currentTime = Date.now();
-    const elapsed = currentTime - this.startTime;
-
-    let t = clock.getElapsedTime();
+    this.clock = clock;
+    this.camera = camera;
+    this.renderer = renderer;
+    
+    let t = this.clock.getElapsedTime();
     this.time.value = t * Math.PI;
-
-    console.log("active profiles ", activeProfiles.size )
 
     const chunkRows = this.ChunksArray;
     const rowsLength = chunkRows.length;
@@ -402,7 +442,7 @@ export class Galaxy extends THREE.Group {
         chunk.update(clock);
       }
     }
-    this.findPoints(camera, this.CHUNK_DISTANCE_THRESHOLD, this.POINT_DISTANCE_THRESHOLD);
+    this.findPoints(this.CHUNK_DISTANCE_THRESHOLD, this.POINT_DISTANCE_THRESHOLD);
 
     activeProfiles.forEach((profile: ProfileItem | null, key) => {
       // Calculate the distance between the profile and the camera
@@ -415,6 +455,7 @@ export class Galaxy extends THREE.Group {
         this.remove(profile!);
         profile!.dispose();
         activeProfiles.delete(key);
+        clickableObjects.delete(key);
 
         renderer.renderLists.dispose();
         profile = null;
@@ -425,5 +466,22 @@ export class Galaxy extends THREE.Group {
 }
   
   
+
+export class Focus {
+
+  targetPos: THREE.Vector3;
+  distance: number;
+  camera: THREE.Camera;
+
+  constructor(taggetObj: THREE.Object3D, camera: THREE.Camera){
+    this.targetPos = taggetObj.getWorldPosition(new THREE.Vector3());
+    this.camera = camera;
+    this.distance = this.camera.position.distanceTo(this.targetPos);
+  }
+
+  update(camera: THREE.Camera){
+    this.camera = camera;
+  }
+}
   
   
