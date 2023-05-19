@@ -9,7 +9,7 @@ export class CustomControls extends OrbitControls {
     constructor(camera: THREE.Camera, domElement: HTMLElement){
         super(camera, domElement);
 
-        window.addEventListener("scroll", this.onScroll)
+        window.addEventListener("scroll", this.onScroll.bind(this), false);
     }
 
     onScroll(event: any){

@@ -1,8 +1,11 @@
 
 import * as THREE from "three"
 import { ProfileIconUI, ProfileItem } from "./ProfileItem";
-import { RaycasterUI } from "./raycaster";
 import * as TWEEN from '@tweenjs/tween.js';
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { userControls } from "./scene"; 
+import FocusSystem from "./FocusSystem";
+import { RaycasterUI } from "./Raycaster";
 
 interface IProfileData {
   profileId: number;
@@ -172,7 +175,7 @@ export class Galaxy extends THREE.Group {
     this.CHUNK_DISTANCE_THRESHOLD = CHUNK_DISTANCE_THRESHOLD;
     this.POINT_DISTANCE_THRESHOLD = POINT_DISTANCE_THRESHOLD;
     this.raycaster = new RaycasterUI();
-    this.focusSys = new FocusSystem(this.camera);
+    this.focusSys = new FocusSystem(this.camera, userControls);
 
     window.addEventListener("mousemove", (event: any) => this.raycaster.onMouseMove(event));
     window.addEventListener("click", (event: any) => this.onClick(event));
@@ -264,24 +267,6 @@ export class Galaxy extends THREE.Group {
     }
   }
 
-  focusOnTarget(target: THREE.Object3D) {
-    console.log("Starting focus on target")
-    const finalPos = new THREE.Vector3();
-    target.getWorldPosition(finalPos);
-    const focusDistance = this.camera.position.distanceTo(finalPos);
-  
-    const cameraCoords = { x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z };
-  
-    new TWEEN.Tween(cameraCoords)
-      .to({ x: finalPos.x, y: finalPos.y, z: finalPos.z}, focusDistance * 200)
-      .onUpdate(() => {
-        console.log("Updating Focus")
-        this.camera.position.set(cameraCoords.x, cameraCoords.y, cameraCoords.z);
-        this.camera.lookAt(target.position);
-      })
-      .start();
-  }
-
   // Search if the camera is within the threshold of the chunk
   findPoints(chunkDistanceThreshold: number, pointDistanceThreshold: number) {
     const cameraDirection = this.camera.getWorldDirection(new THREE.Vector3());
@@ -296,15 +281,13 @@ export class Galaxy extends THREE.Group {
           // Check for near points inside the chunk
           for (let k = 0; k < this.ChunksArray[i][j].points.length; k++) {
             const point = this.ChunksArray[i][j].points[k];
-            if (this.camera.position.distanceTo(point) < pointDistanceThreshold) {
-              const pointDirection = point.clone().sub(this.camera.position).normalize();
-              const angle = cameraDirection.angleTo(pointDirection);
-              console.log("ANGLE", angle)
-
-                if (!activeProfiles.has(k)) {
+            const cameraToPoint = new THREE.Vector3().subVectors(point, this.camera.position).normalize();
+            const THRESHOLD = 0.7;
+            
+            if (this.camera.position.distanceTo(point) < pointDistanceThreshold) 
+              if(cameraToPoint.dot(cameraDirection) > THRESHOLD)
+                if (!activeProfiles.has(k)) 
                   this.activateProfile(point, k);
-                }
-              }
           }
         }
       }
@@ -396,11 +379,12 @@ export class Galaxy extends THREE.Group {
 
   isProfileValid(profile: ProfileItem){
     const distance = profile!.position.distanceTo(this.camera.position);
-    const angle = this.getCameraAngle();
-    if( distance > this.POINT_DISTANCE_THRESHOLD
-      ){
+    const cameraToPoint = new THREE.Vector3().subVectors(profile!.position, this.camera.position).normalize();
+    const THRESHOLD = 0.7;
+    if( distance > this.POINT_DISTANCE_THRESHOLD || 
+        cameraToPoint.dot(this.camera.getWorldDirection(new THREE.Vector3())) < THRESHOLD)
         return false;
-    }
+    
     return true;
   }
   
@@ -479,63 +463,22 @@ export class Galaxy extends THREE.Group {
 
     activeProfiles.forEach((profile: ProfileItem | null, key) => {
       // Calculate the distance between the profile and the camera
-      const distance = profile!.position.distanceTo(camera.position);
       profile!.update(camera, clock);
 
-      // Check if the distance exceeds the threshold
-      if (this.isProfileValid(profile!) === false) {
-        // Dispose of the profile
-        this.remove(profile!);
-        profile!.dispose();
-        activeProfiles.delete(key);
-        clickableObjects.delete(key);
-
-        renderer.renderLists.dispose();
-        profile = null;
-      }
+      this.disposeOfProfile(profile, renderer);
     });
   }
 
+  disposeOfProfile(profile: ProfileItem | null, renderer: THREE.WebGLRenderer){
+    if(this.isProfileValid(profile!) === false){
+      this.remove(profile!);
+      profile!.dispose();
+      activeProfiles.delete(profile!.profileId);
+      clickableObjects.delete(profile!.profileId);
+
+      renderer.renderLists.dispose();
+      profile = null;
+    }
+  }
+
 } 
-
-export class FocusSystem {
-
-  targetPos!: THREE.Vector3;
-  distance: number | undefined;
-  camera: THREE.Camera;
-  cameraPos!: THREE.Vector3;
-  endFocus: boolean = false ;
-
-  constructor(camera: THREE.Camera){
-    this.camera = camera;
-  }
-
-  focusOnTarget(targetObj: THREE.Object3D){
-
-    this.targetPos = targetObj.getWorldPosition(new THREE.Vector3());
-    this.distance = this.camera.position.distanceTo(this.targetPos);
-    this.cameraPos = this.camera.position.clone();
-
-    new TWEEN.Tween(this.cameraPos)
-      .to({ x: this.targetPos.x, y: this.targetPos.y, z: this.targetPos.z }, this.distance * 200)
-      .onUpdate(() => {
-        console.log("updating Focus")
-        this.camera.position.set(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z);
-        this.camera.lookAt(this.targetPos);
-      })
-      .start();
-  }
-
-  update(camera: THREE.Camera){
-    this.camera = camera;
-    TWEEN.update();
-  }
-
-  finishAnimation(){
-
-  }
-
-
-}
-  
-  

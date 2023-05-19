@@ -63,7 +63,9 @@ globalResources.btFaceAlpha 		= loader.load( 'img/galaxy/btfacealpha.png' );
 globalResources.btFace2 			= loader.load( 'img/galaxy/btface2.png' );
 globalResources.cityMap 			= loader.load( 'img/galaxy/city.jpg' );
 
-let bordmap                         = loader.load( 'img/galaxy/pins.png' );
+export let bordmap                         = loader.load( 'img/galaxy/pins.png' );
+export let MOBILE_MODE = false;    
+export const PROFILE_ANIMATE_TIME = 1000; 	
 
 bordmap.anisotropy = maxEnabledAnisotropy;
 bordmap.wrapS = THREE.RepeatWrapping;

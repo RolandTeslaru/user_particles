@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { globalResources } from "./GlobalResources";
 import { novaBaseVS, glitchProfilePFS, BtnFaceFS, BtnTextFS, glitchButtonFS, BtnLightFS } from './shaders';
 import * as TWEEN from '@tweenjs/tween.js';
-
+import { PROFILE_ANIMATE_TIME } from "./GlobalResources";
 const loader = new THREE.TextureLoader();
 
 export class TextUI extends THREE.Mesh {
@@ -18,7 +18,6 @@ export class ButtonUI extends THREE.Group {
     material: THREE.MeshBasicMaterial | THREE.ShaderMaterial;
     geometry: THREE.BufferGeometry<THREE.NormalBufferAttributes>;
     mesh: THREE.Mesh;
-
     text:THREE.Mesh
 
     constructor (){
@@ -188,38 +187,42 @@ export class ProfileItem extends THREE.Group{
    
     }
 
-    animateAppear(){
+    animateAppear() {
         const startScale = new THREE.Vector3(0, 0, 0); // Initial scale
         const endScale = new THREE.Vector3(1, 1, 1); // Target scale
-
+    
         // Create a tween animation
         const tween = new TWEEN.Tween(startScale)
-        .to(endScale, 1000) // Set the duration of the animation (in milliseconds)
-        .easing(TWEEN.Easing.Elastic.Out) // Use an easing function for a smoother effect
-        .onUpdate(() => {
-            // Update the scale of the ProfileItem
-            this.scale.copy(startScale);
-            console.log("this is happening")
-        })
-        .start(); // Start the animation
+            .to(endScale, PROFILE_ANIMATE_TIME)
+            .easing(TWEEN.Easing.Elastic.Out)
+            .onUpdate(() => {
+                this.scale.copy(startScale);
+            })
+            .onComplete(() => {
+                TWEEN.removeAll();
+            })
+            .start(); // Start the animation
+    }
 
-        // Use the onBeforeRender event to update the Tween.js animation
-        const updateAnimation = () => {
-        if (tween) {
+    updateAnimation(tween: any){
+        if (tween)
             TWEEN.update();
-        }
-        };
-        this.addEventListener('beforeRender', updateAnimation);
-        tween.onComplete(() => {
-            this.removeEventListener('beforeRender', updateAnimation);  // Remove the event listener            
-        })
     }
 
     animateDissaapear(){
         const startScale = new THREE.Vector3(1, 1, 1); // Initial scale
         const endScale = new THREE.Vector3(0, 0, 0); // Target scale
 
-        const tween = new 
+        const tween = new TWEEN.Tween(startScale)
+            .to(endScale, PROFILE_ANIMATE_TIME)
+            .easing(TWEEN.Easing.Elastic.Out)
+            .onUpdate(() => {
+                this.scale.copy(startScale);
+                console
+            })
+            .onComplete(() => {
+                TWEEN.removeAll();
+             })
     }
 
     // Dispose after the window is no longer within the threshold
