@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export class RaycasterUI extends THREE.Raycaster {
+export default class RaycasterSystem extends THREE.Raycaster {
   pointer: THREE.Vector2 = new THREE.Vector2(0, 0);
   objects: THREE.Object3D[] | null = null;
 

@@ -5,7 +5,7 @@ import * as TWEEN from '@tweenjs/tween.js';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { userControls } from "./scene"; 
 import FocusSystem from "./FocusSystem";
-import { RaycasterUI } from "./Raycaster";
+import RaycasterSystem from "./Raycaster";
 
 interface IProfileData {
   profileId: number;
@@ -152,7 +152,7 @@ export class Galaxy extends THREE.Group {
 
   time: { value: number } = { value: 0 };
 
-  raycaster: RaycasterUI;
+  raycaster: RaycasterSystem;
   clock!: THREE.Clock;
   camera!: THREE.Camera;
   renderer!: THREE.WebGLRenderer;
@@ -174,7 +174,7 @@ export class Galaxy extends THREE.Group {
     this.CHUNK_LEN = 6;
     this.CHUNK_DISTANCE_THRESHOLD = CHUNK_DISTANCE_THRESHOLD;
     this.POINT_DISTANCE_THRESHOLD = POINT_DISTANCE_THRESHOLD;
-    this.raycaster = new RaycasterUI();
+    this.raycaster = new RaycasterSystem();
     this.focusSys = new FocusSystem(this.camera, userControls);
 
     window.addEventListener("mousemove", (event: any) => this.raycaster.onMouseMove(event));
