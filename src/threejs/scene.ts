@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import Galaxy from "./Galaxy.ts";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import Galaxy from "./galaxy";
 
 export var renderTimeSeconds = 0;
 export var rtPlane: any;
