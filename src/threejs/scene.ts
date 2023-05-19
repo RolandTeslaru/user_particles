@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import Galaxy from "./Galaxy";
+import Galaxy from "./Galaxy.ts";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 export var renderTimeSeconds = 0;
