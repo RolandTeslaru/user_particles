@@ -5,7 +5,7 @@ import * as TWEEN from '@tweenjs/tween.js';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { userControls } from "./scene"; 
 import FocusSystem from "./FocusSystem";
-import RaycasterSystem from "./Raycaster";
+import RaycasterSystem from "./RaycasterSystem";
 
 interface IProfileData {
   profileId: number;
