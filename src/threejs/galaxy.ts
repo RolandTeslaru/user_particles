@@ -115,7 +115,7 @@ export class Chunk extends THREE.Mesh{
 
 
 
-export class Galaxy extends THREE.Group {
+export default class Galaxy extends THREE.Group {
   TOTAL_SIZE: number;
   SPHERE_SIZE: number;
   OUTER_RIM_SIZE: number;

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { Galaxy } from "./Galaxy";
 import { globalResources } from "./GlobalResources";
+import Galaxy from "./Galaxy";
 
 export var renderTimeSeconds = 0;
 export var rtPlane: any;
