@@ -3,7 +3,6 @@ import { globalResources } from "./GlobalResources";
 import { novaBaseVS, glitchProfilePFS, BtnFaceFS, BtnTextFS, glitchButtonFS, BtnLightFS } from './shaders';
 import * as TWEEN from '@tweenjs/tween.js';
 import { PROFILE_ANIMATE_TIME } from "./GlobalResources";
-import TextSprite from '@seregpie/three.text-sprite';
 import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader";
 
 import opentype from 'opentype.js';
