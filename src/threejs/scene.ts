@@ -13,8 +13,11 @@ let camera = new THREE.PerspectiveCamera(
   100000
 );
 camera.position.set(15, 3, 15);
+
 let renderer = new THREE.WebGLRenderer();
 export const userControls = new OrbitControls(camera, renderer.domElement);
+userControls.enableDamping = false;
+userControls.enablePan = true;
 userControls.update();
 renderer.setSize(window.innerWidth, window.innerHeight);
 //@ts-ignore
@@ -40,8 +43,8 @@ const OUTER_RIM_SIZE = 100000;
 const galaxy = new Galaxy(
   SPHERE_SIZE,
   OUTER_RIM_SIZE,
-  3,
-  3
+  2,
+  2
 );
 scene.add(galaxy)
 
@@ -51,6 +54,7 @@ function animate() {
   renderer.render(scene, camera);
 
   galaxy.updateAnimation(clock, camera, renderer);
+
 }
 
 animate();

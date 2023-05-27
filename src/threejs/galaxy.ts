@@ -92,11 +92,19 @@ export class Chunk extends THREE.Mesh{
   }
 
 
+  setNearMode(){
+    this.freezeChunk = true;
+    this.particleSystem.geometry.setAttribute('shift', new THREE.Float32BufferAttribute(0, 4));
+  }
+
+  setFarMode(){
+    this.freezeChunk = false;
+    this.particleSystem.geometry.setAttribute('shift', new THREE.Float32BufferAttribute(this.shift, 4));
+  }
+
   update(clock: THREE.Clock){
     if(this.freezeChunk === false)
-    {
       this.time.value = clock.getElapsedTime() * Math.PI;
-    }
   }
 
   isCameraNear(camera: THREE.Camera, distanceThreshold: number): boolean{
@@ -104,9 +112,9 @@ export class Chunk extends THREE.Mesh{
     camera.getWorldPosition(cameraPos);
 
     if(this.boundingBox.distanceToPoint(cameraPos) < distanceThreshold)
-      this.freezeChunk = true;
+      this.setNearMode();
     else
-      this.freezeChunk = false;
+      this.setFarMode();
     
     return this.boundingBox.distanceToPoint(cameraPos) < distanceThreshold;
   }
@@ -245,6 +253,7 @@ export default class Galaxy extends THREE.Group {
     const target = this.raycaster.findIntersectingObject(event, Array.from(clickableObjects.values()), this.camera);
     console.log("Array from ", Array.from(clickableObjects.values()));
     if(target){
+      console.log(target)
       this.focusSys.update(this.camera);
       this.focusSys.focusOnTarget(target);
     }
@@ -257,8 +266,8 @@ export default class Galaxy extends THREE.Group {
   //and within the threshold of the point then add it to the array
   activateProfile(point: THREE.Vector3, index: number) {
     if (!activeProfiles.has(index)) {
-      const profileItem = new ProfileItem("/profileSm.jpg", index);
-      profileItem.position.set(point.x, point.y, point.z);
+      const profileItem = new ProfileItem("/profileSm.jpg", index, "John Doe", 25, "male", 180);
+      profileItem.position.set(point.x, point.y, point.z );
       activeProfiles.set(index, profileItem);
       this.add(profileItem);
       profileItem.animateAppear();
@@ -278,16 +287,20 @@ export default class Galaxy extends THREE.Group {
         chunk.getWorldPosition(chunkCenter);
 
         if (this.ChunksArray[i][j].isCameraNear(this.camera, chunkDistanceThreshold)) {
+
           // Check for near points inside the chunk
           for (let k = 0; k < this.ChunksArray[i][j].points.length; k++) {
             const point = this.ChunksArray[i][j].points[k];
             const cameraToPoint = new THREE.Vector3().subVectors(point, this.camera.position).normalize();
             const THRESHOLD = 0.7;
+
+            const shiftPos = this.ChunksArray[i][j].shift[k];
             
             if (this.camera.position.distanceTo(point) < pointDistanceThreshold) 
               if(cameraToPoint.dot(cameraDirection) > THRESHOLD)
-                if (!activeProfiles.has(k)) 
-                  this.activateProfile(point, k);
+                if (!activeProfiles.has(k)){
+                    this.activateProfile(point,  k);
+                }
           }
         }
       }
@@ -387,7 +400,7 @@ export default class Galaxy extends THREE.Group {
     
     return true;
   }
-  
+   
   generateGalaxy() {
     // Generate inner sphere points
     this.galaxyPoints = new Array(this.SPHERE_SIZE).fill(null).map((p) => {
@@ -461,6 +474,7 @@ export default class Galaxy extends THREE.Group {
 
     TWEEN.update();
 
+
     activeProfiles.forEach((profile: ProfileItem | null, key) => {
       // Calculate the distance between the profile and the camera
       profile!.update(camera, clock);
@@ -473,8 +487,8 @@ export default class Galaxy extends THREE.Group {
     if(this.isProfileValid(profile!) === false){
       this.remove(profile!);
       profile!.dispose();
-      activeProfiles.delete(profile!.profileId);
-      clickableObjects.delete(profile!.profileId);
+      activeProfiles.delete(profile!.profileId!);
+      clickableObjects.delete(profile!.profileId!);
 
       renderer.renderLists.dispose();
       profile = null;

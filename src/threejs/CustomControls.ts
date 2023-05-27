@@ -13,7 +13,6 @@ export class CustomControls extends OrbitControls {
     }
 
     onScroll(event: any){
-        console.log("Scrolling")
         if(this.isLocked)
         {
             this.isLocked = false; 

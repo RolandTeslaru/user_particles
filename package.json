@@ -15,6 +15,7 @@
     "eslint": "8.40.0",
     "eslint-config-next": "13.4.1",
     "next": "13.4.1",
+    "opentype.js": "^1.3.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.0.4"
@@ -23,6 +24,7 @@
     "@brakebein/threeoctree": "^2.0.1",
     "@types/dat.gui": "^0.7.10",
     "@types/gsap": "^3.0.0",
+    "@types/opentype.js": "^1.3.4",
     "@types/three": "^0.152.0",
     "dat.gui": "^0.7.9",
     "gsap": "^3.11.5",
